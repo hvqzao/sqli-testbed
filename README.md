@@ -11,7 +11,9 @@ cd /var/www/html ; git clone https://github.com/hvqzao/sqli-testbed sqli
 newpass=`apg -M NCL -m 12 -n 1` ; echo -e "New password: $newpass\nPress Enter to proceed, ^C to cancel." ; read ; sed -i "s/zoacUtOvee/$newpass/g" index.php
 ```
 3) Setup MySQL (commands included in index.php)
+
 4) Configure "Setup", "Drop" and "Filter" sections (uncomment appropriate entries in index.php)
+
 5) Goal: Dump table with user passwords
 
 Union based:
