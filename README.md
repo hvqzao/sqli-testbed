@@ -1,6 +1,6 @@
 # sqli-testbed
 
-SQL injection testbed designed to for sqlmap practice (MySQL backend)
+SQL injection testbed designed for sqlmap practice (MySQL backend)
 
 ## Usage
 
