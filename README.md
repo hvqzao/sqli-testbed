@@ -1,4 +1,6 @@
-# sqli-testbed (mysql) v0.5
+# sqli-testbed
+
+SQL injection testbed designed to for sqlmap practice (MySQL backend)
 
 ## Usage
 
