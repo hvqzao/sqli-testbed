@@ -24,6 +24,9 @@ http://127.0.0.1/sqli/?u=1
 Boolean based:
 http://127.0.0.1/sqli/?b=1
 
+Example use:
+https://www.youtube.com/watch?v=KSiS5c83-y0
+
 ## License
 
 [MIT License](https://github.com/twbs/bootstrap/blob/master/LICENSE)
