@@ -29,5 +29,5 @@ https://www.youtube.com/watch?v=KSiS5c83-y0
 
 ## License
 
-[MIT License](https://github.com/twbs/bootstrap/blob/master/LICENSE)
+[MIT License](LICENSE)
 
