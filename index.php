@@ -1,6 +1,30 @@
-<?php
+<?
+/* mysql sqli testbed v0.4
+Wed Mar 11 15:56:54 CET 2015
 
-/* Install
+
+
+// Usage
+
+ 1) Setup MySQL (see below)
+ 2) Create /var/www/sqli
+ 3) Create /var/www/sqli/.htaccess
+ 4) Copy this file to /var/www/sqli/index.php
+ 5) Configure "Setup", "Drop" and "Filter" sections (see below)
+ 6) Goal:
+    Dump table with user passwords
+
+    Union based:
+        http://127.0.0.1/sqli/?u=1
+    
+    Boolean based:
+        http://127.0.0.1/sqli/?b=1
+
+
+
+// Install
+
+apt-get install default-mysql-server php-mysql
 
 mysql -u root -p
 (if you dont remember mysql root password - in Debian-based (i.e. Ubuntu, Kali) systems you could use "dpkg-reconfigure mysql-server-5.5" to change it)
@@ -21,37 +45,50 @@ mysql -u root -p
     insert into user (host, user, password, select_priv) VALUES ('localhost', 'sqli', PASSWORD('zoacUtOvee'), 'Y');
     flush privileges;
 
-/var/www/html/sqli/.htaccess
+/var/www/sqli/.htaccess
 
     Order Allow,Deny
     Allow from 127.
 
 */
 
-$conn = mysql_connect("127.0.0.1", "sqli", "zoacUtOvee") or die("Error: Unable to connect to MySQL");
-$db = mysql_select_db("sqli",$conn) or die("Error: Database selection has failed");
+$conn = mysqli_connect("127.0.0.1", "sqli", "zoacUtOvee") or die("Error: Unable to connect to MySQL");
+$db = mysqli_select_db($conn,"sqli") or die("Error: Database selection has failed");
 $debug_id = function($where) { global $debug, $id; if ($debug) { echo "<pre>\nid: \"$id\" ($where)\n</pre>\n"; }};
 $show_query = function($type) { global $show, $query; if ($show) { echo "<pre>\nquery: \"$query\" ($type)\n</pre>\n"; }};
-$debug_param = function($data) { global $debug; if ($debug) { echo "<pre>\nparam: "; print_r($data); echo "</pre>\n"; }};
+$debug_param = function($data) { global $debug; if ($debug) { echo "<pre>\nresult: "; print_r($data); echo "</pre>\n"; }};
 $verbose_drop = function($text) { global $verbose; if ($verbose) { echo "<pre>\ndrop: $text</pre>\n"; }};
 $verbose_filter = function($text) { global $verbose; if ($verbose) { echo "<pre>\nfilter: $text</pre>\n"; }};
+
+
 
 // Params
 
 if (isset($_GET['id'])) $id = $_GET['id']; else $id = '';
-if (isset($_GET['dept'])) $dept = mysql_real_escape_string($_GET['dept']); else $dept = '';
+if (isset($_GET['dept'])) $dept = mysqli_real_escape_string($_GET['dept']); else $dept = '';
 //$type = 'union';
 $type = 'boolean';
 if (isset($_GET['u'])) { $id = $_GET['u']; $type = 'union'; }
 if (isset($_GET['b'])) { $id = $_GET['b']; $type = 'boolean'; }
 
+
+
 // Setup
 
-//$verbose = true; // filters verbosity
-//$show = true; // query verbosity
-//$debug = true; // debugging verbosity
+$verbose = false; // filters verbosity
+$show = false; // query verbosity
+$debug = false; // debugging verbosity
+$error = false; // database verbosity
 
-// Drop
+if (isset($_GET["v"])) {
+	$verbose = true;
+	$show = true;
+	$debug = true;
+	$error = true;
+}
+
+
+// Drop ("attack")
 
 //$verbose_drop('no quotes'); if (preg_match('/[\'"]/', $id)) exit('attack');
 //$verbose_drop('no whitespaces'); if (preg_match('/\s/', $id)) exit('attack');
@@ -78,6 +115,8 @@ if (isset($_GET['b'])) { $id = $_GET['b']; $type = 'boolean'; }
 
 //$verbose_drop('no boolean operators'); if (preg_match('/(=|&|\|)/', $id)) exit('attack');
 
+
+
 // Filter
 
 //$verbose_filter('length limit'); $id = substr($id, 0, 140);
@@ -103,15 +142,40 @@ if (isset($_GET['b'])) { $id = $_GET['b']; $type = 'boolean'; }
 
 //$debug_id('ips');
 
+?>
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    pre { color:red;
+          white-space: pre-wrap;       /* Since CSS 2.1 */
+          white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+          white-space: -pre-wrap;      /* Opera 4-6 */
+          white-space: -o-pre-wrap;    /* Opera 7 */
+          word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+<?
+if (!isset($_GET['u']) && !isset($_GET['b'])):
+?>
+<pre>usage: use query parameters u (union) or b (boolean-based), e.g. <? echo "http" . (($_SERVER['SERVER_PORT'] == 443) ? "s://" : "://") . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']."?b=1" ?></pre>
+<?
+	else:
+?>
+<?
+
 // Query
 
 switch ($type):
+
 
     case 'union':
 
         $query = "select balance from finance where id='$id' or department='$dept'";
         $show_query($type);
-        if($data = @mysql_fetch_array(mysql_query($query))) {
+        if($data = @mysqli_fetch_array(mysqli_query($conn, $query))) {
             $debug_param($data);
             echo "balance: $ ${data['balance']}";
         } else {
@@ -119,11 +183,12 @@ switch ($type):
         }
         break;
 
+
     case 'boolean':
 
         $query = "select max(balance) from finance where id='$id' or department='$dept'";
         $show_query($type);
-        if($data = @mysql_fetch_array(mysql_query($query))) {
+        if($data = @mysqli_fetch_array(mysqli_query($conn, $query))){
             $debug_param($data);
             echo "balance: $ ${data[0]}";
         } else {
@@ -134,4 +199,18 @@ switch ($type):
 
     // default:
 endswitch;
+
+if ($error) {
+    $errormesg = mysqli_error($conn);
+    if ($errormesg) {
+        echo "\n<pre>error: ".$errormesg."</pre>";
+    }
+}
+mysqli_close($conn);
 ?>
+<?
+endif
+?>
+  <a href="..">back</a>
+</body>
+</html>
